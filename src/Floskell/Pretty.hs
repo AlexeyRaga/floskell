@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Floskell.Pretty where
+module Floskell.Pretty ( Pretty(..), pretty ) where
 
 import           Control.Applicative            ( (<|>) )
 import           Control.Monad
