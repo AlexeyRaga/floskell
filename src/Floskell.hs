@@ -4,12 +4,13 @@
 
 -- | Haskell indenter.
 module Floskell
-    ( -- * Formatting functions.
-      reformat
+    ( -- * Types
+      Config(..)
+    , Language(..)
+    , Extension(..)
+      -- * Formatting functions.
+    , reformat
     , prettyPrint
-      -- * Style
-    , Style(..)
-    , styles
       -- * Testing
     , defaultExtensions
     ) where
@@ -31,7 +32,6 @@ import           Data.Monoid
 import qualified Floskell.Buffer            as Buffer
 import           Floskell.Comments
 import           Floskell.Pretty            ( pretty, printComment )
-import           Floskell.Styles            ( styles )
 import           Floskell.Types
 
 import           Language.Haskell.Exts
@@ -42,13 +42,13 @@ data CodeBlock = HaskellSource Int ByteString | CPPDirectives ByteString
     deriving ( Show, Eq )
 
 -- | Format the given source.
-reformat :: Style
+reformat :: Config
          -> Language
          -> [Extension]
          -> Maybe FilePath
          -> ByteString
          -> Either String L.ByteString
-reformat style language langextensions mfilepath x = preserveTrailingNewline x
+reformat config language langextensions mfilepath x = preserveTrailingNewline x
     . mconcat . intersperse "\n" <$> mapM processBlock (cppSplitBlocks x)
   where
     processBlock :: CodeBlock -> Either String L.ByteString
@@ -69,7 +69,7 @@ reformat style language langextensions mfilepath x = preserveTrailingNewline x
         in
             case parseModuleWithComments mode'' (UTF8.toString code) of
                 ParseOk (m, comments) ->
-                    fmap (addPrefix prefix) (prettyPrint style m comments)
+                    fmap (addPrefix prefix) (prettyPrint config m comments)
                 ParseFailed loc e -> Left $
                     Exts.prettyPrint (loc { srcLine = srcLine loc + offset })
                     ++ ": " ++ e
@@ -163,28 +163,28 @@ cppSplitBlocks = map (classify . unlines') . groupBy ((==) `on` (cppLine . snd))
         if cppLine text then CPPDirectives text else HaskellSource ofs text
 
 -- | Print the module.
-prettyPrint :: Style
+prettyPrint :: Config
             -> Module SrcSpanInfo
             -> [Comment]
             -> Either a L.ByteString
-prettyPrint style m comments =
+prettyPrint config m comments =
     let (cs, ast) =
             annotateComments (fromMaybe m $ applyFixities baseFixities m)
                              comments
         csComments = map comInfoComment cs
     in
-        Right (runPrinterStyle style
-                               -- For the time being, assume that all "free-floating" comments come at the beginning.
-                               -- If they were not at the beginning, they would be after some ast node.
-                               -- Thus, print them before going for the ast.
-                               (do
-                                    mapM_ (printComment Nothing)
-                                          (reverse csComments)
-                                    pretty ast))
+        Right (runPrinterConfig config
+                                -- For the time being, assume that all "free-floating" comments come at the beginning.
+                                -- If they were not at the beginning, they would be after some ast node.
+                                -- Thus, print them before going for the ast.
+                                (do
+                                     mapM_ (printComment Nothing)
+                                           (reverse csComments)
+                                     pretty ast))
 
 -- | Pretty print the given printable thing.
-runPrinterStyle :: Style -> Printer () -> L.ByteString
-runPrinterStyle (Style _name _author _desc st) m =
+runPrinterConfig :: Config -> Printer () -> L.ByteString
+runPrinterConfig config m =
     maybe (error "Printer failed with mzero call.")
           (Buffer.toLazyByteString . psBuffer)
           (snd <$> execPrinter m
@@ -192,7 +192,7 @@ runPrinterStyle (Style _name _author _desc st) m =
                                            0
                                            0
                                            Map.empty
-                                           st
+                                           config
                                            False
                                            Anything))
 

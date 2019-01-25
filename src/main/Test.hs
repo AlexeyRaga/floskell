@@ -15,6 +15,7 @@ import           Data.Maybe                   ( mapMaybe )
 import qualified Data.Text                    as T
 
 import           Floskell
+import           Floskell.Styles              ( Style(..), styles )
 
 import           Language.Haskell.Exts        ( Language(Haskell2010) )
 
@@ -117,7 +118,11 @@ testAll = do
 
 reformatSnippet :: Style -> ByteString -> Either String ByteString
 reformatSnippet style code = L.toStrict
-    <$> reformat style Haskell2010 defaultExtensions (Just "TEST.md") code
+    <$> reformat (styleConfig style)
+                 Haskell2010
+                 defaultExtensions
+                 (Just "TEST.md")
+                 code
 
 regenerate :: Style -> [Markdone] -> [Markdone]
 regenerate style = map fmt

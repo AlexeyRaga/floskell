@@ -22,9 +22,9 @@ import           Data.Monoid                     ( (<>) )
 import qualified Data.Text                       as T
 import           Data.Version                    ( showVersion )
 
-import           Floskell                        ( reformat, styles )
-import           Floskell.Types
-                 ( Style(styleName, styleConfig) )
+import           Floskell                        ( reformat )
+import           Floskell.Styles
+                 ( Style(styleName, styleConfig), styles )
 
 import           Foreign.C.Error                 ( Errno(..), eXDEV )
 
@@ -200,8 +200,8 @@ reformatByteString :: Style
                    -> Maybe FilePath
                    -> BS.ByteString
                    -> BL.ByteString
-reformatByteString style language extensions mpath text =
-    either error id $ reformat style language extensions mpath text
+reformatByteString style language extensions mpath text = either error id $
+    reformat (styleConfig style) language extensions mpath text
 
 -- | Try to find a configuration file based on current working
 -- directory, or in one of the application configuration directories.
