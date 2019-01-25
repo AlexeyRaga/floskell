@@ -24,7 +24,7 @@ import           Data.Version                    ( showVersion )
 
 import           Floskell                        ( reformat, styles )
 import           Floskell.Types
-                 ( Style(styleName, styleInitialState) )
+                 ( Style(styleName, styleConfig) )
 
 import           Foreign.C.Error                 ( Errno(..), eXDEV )
 
@@ -70,7 +70,7 @@ instance ToJSON Config where
     toJSON Config{..} = JSON.object [ "style" .= styleName cfgStyle
                                     , "language" .= show cfgLanguage
                                     , "extensions" .= map showExt cfgExtensions
-                                    , "formatting" .= styleInitialState cfgStyle
+                                    , "formatting" .= styleConfig cfgStyle
                                     ]
       where
         showExt (EnableExtension x) = show x
@@ -84,9 +84,9 @@ instance FromJSON Config where
             <$> o .:? "language"
         extensions <- maybe (cfgExtensions defaultConfig) (map lookupExtension)
             <$> o .:? "extensions"
-        let flex = styleInitialState style
+        let flex = styleConfig style
         flex' <- maybe flex (updateFlexConfig flex) <$> o .:? "formatting"
-        let style' = style { styleInitialState = flex' }
+        let style' = style { styleConfig = flex' }
         return $ Config style' language extensions
       where
         updateFlexConfig cfg v =
